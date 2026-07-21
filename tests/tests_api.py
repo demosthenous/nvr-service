@@ -33,11 +33,46 @@ def test_camera_on_unknown_nvr_rejected(client):
     assert r.status_code == 404
 
 # Workflow 2
-def test_deleting_nvr_cascades_to_cameras(client):
+def test_deleting_nvr_with_linked_cameras_requires_confirmation(client):
     client.post("/nvrs", json=make_nvr())
     client.post("/cameras", json=make_cam())
-    assert client.delete(f"/nvrs/{NVR_ID}").status_code == 204
+
+    r = client.delete(f"/nvrs/{NVR_ID}")
+    assert r.status_code == 409
+    detail = r.json()["detail"]
+    assert detail["confirmation_required"] is True
+    assert "camera" in detail["message"].lower()
+    assert len(detail["cameras"]) == 1
+
+    # camera must still exist; nothing was deleted
+    assert len(client.get("/cameras").json()) == 1
+
+def test_deleting_nvr_cascades_to_cameras_when_confirmed(client):
+    client.post("/nvrs", json=make_nvr())
+    client.post("/cameras", json=make_cam())
+    assert client.delete(f"/nvrs/{NVR_ID}", params={"confirm": "true"}).status_code == 204
     assert client.get("/cameras").json() == []
+
+def test_deleting_nvr_without_cameras_needs_no_confirmation(client):
+    client.post("/nvrs", json=make_nvr())
+    assert client.delete(f"/nvrs/{NVR_ID}").status_code == 204
+
+def test_camera_rejected_when_nvr_at_max_capacity(client):
+    client.post("/nvrs", json=make_nvr(maximum_input_channels=1))
+    assert client.post("/cameras", json=make_cam()).status_code == 201
+    r = client.post("/cameras", json=make_cam(serial_number="22222222-2222-2222-2222-222222222222"))
+    assert r.status_code == 409
+    assert "maximum" in r.json()["detail"].lower()
+
+def test_list_nvrs(client):
+    client.post("/nvrs", json=make_nvr())
+    r = client.get("/nvrs")
+    assert r.status_code == 200
+    assert [n["serial_number"] for n in r.json()] == [NVR_ID]
+
+def test_blank_make_rejected(client):
+    r = client.post("/nvrs", json=make_nvr(make="   "))
+    assert r.status_code == 422
 
 # Workflows 3, 4, 5
 def test_filter_by_kind(client):

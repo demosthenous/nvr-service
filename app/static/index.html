@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NVR &amp; Camera Management</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #ffffff;
+    --fg: #1a1a1a;
+    --muted: #6b7280;
+    --border: #e2e2e2;
+    --panel: #f8f8f8;
+    --accent: #2563eb;
+    --accent-fg: #ffffff;
+    --danger: #dc2626;
+    --danger-fg: #ffffff;
+    --error-bg: #fef2f2;
+    --error-fg: #991b1b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161a;
+      --fg: #e8e8e8;
+      --muted: #9aa0a8;
+      --border: #2b2f36;
+      --panel: #1b1e23;
+      --accent: #3b82f6;
+      --accent-fg: #0a0a0a;
+      --danger: #ef4444;
+      --danger-fg: #0a0a0a;
+      --error-bg: #2a1414;
+      --error-fg: #fca5a5;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--fg);
+    padding: 2rem;
+    max-width: 1100px;
+    margin-inline: auto;
+  }
+  h1 { font-size: 1.4rem; margin-bottom: 1.5rem; }
+  h2 { font-size: 1.05rem; margin: 0 0 0.75rem; }
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+  @media (max-width: 800px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+  section.panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 0.4rem 0.5rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  th { color: var(--muted); font-weight: 600; }
+  td.mono { font-family: ui-monospace, monospace; font-size: 0.78rem; color: var(--muted); }
+  .empty { color: var(--muted); font-size: 0.85rem; padding: 0.5rem 0; }
+  form.add-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  label {
+    display: flex;
+    flex-direction: column;
+    font-size: 0.8rem;
+    color: var(--muted);
+    gap: 0.25rem;
+  }
+  input, select {
+    font-size: 0.9rem;
+    padding: 0.45rem 0.5rem;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--fg);
+  }
+  button {
+    cursor: pointer;
+    border: none;
+    border-radius: 6px;
+    padding: 0.5rem 0.9rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+  button.primary { background: var(--accent); color: var(--accent-fg); align-self: flex-start; }
+  button.danger { background: var(--danger); color: var(--danger-fg); }
+  .row-error {
+    background: var(--error-bg);
+    color: var(--error-fg);
+    border-radius: 6px;
+    padding: 0.5rem 0.7rem;
+    font-size: 0.82rem;
+    margin-top: 0.5rem;
+    display: none;
+  }
+  .row-error.show { display: block; }
+</style>
+</head>
+<body>
+  <h1>NVR &amp; Camera Management</h1>
+
+  <div class="grid">
+    <section class="panel">
+      <h2>NVRs</h2>
+      <table id="nvr-table">
+        <thead>
+          <tr><th>Make</th><th>Model</th><th>Max ch.</th><th>Serial</th><th></th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div class="empty" id="nvr-empty" style="display:none;">No NVRs yet.</div>
+
+      <h2>Add NVR</h2>
+      <form class="add-form" id="nvr-form">
+        <label>Make <input name="make" required></label>
+        <label>Model <input name="model" required></label>
+        <label>Maximum input channels <input name="maximum_input_channels" type="number" min="1" required></label>
+        <button class="primary" type="submit">Add NVR</button>
+        <div class="row-error" id="nvr-form-error"></div>
+      </form>
+    </section>
+
+    <section class="panel">
+      <h2>Cameras</h2>
+      <table id="camera-table">
+        <thead>
+          <tr><th>Make</th><th>Model</th><th>Kind</th><th>Location</th><th>NVR</th><th></th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div class="empty" id="camera-empty" style="display:none;">No cameras yet.</div>
+
+      <h2>Add Camera</h2>
+      <form class="add-form" id="camera-form">
+        <label>Make <input name="make" required></label>
+        <label>Model <input name="model" required></label>
+        <label>Kind
+          <select name="kind" required>
+            <option value="electro-optical">Electro-optical</option>
+            <option value="thermal">Thermal</option>
+            <option value="infrared">Infrared</option>
+          </select>
+        </label>
+        <label>Location <input name="location" required></label>
+        <label>NVR
+          <select name="nvr_uuid" id="camera-nvr-select" required></select>
+        </label>
+        <button class="primary" type="submit">Add Camera</button>
+        <div class="row-error" id="camera-form-error"></div>
+      </form>
+    </section>
+  </div>
+
+<script>
+const API = "";
+
+async function fetchJSON(url, options) {
+  const res = await fetch(url, options);
+  let body = null;
+  try { body = await res.json(); } catch (e) { /* no body */ }
+  if (!res.ok) {
+    const err = new Error("request failed");
+    err.status = res.status;
+    err.body = body;
+    throw err;
+  }
+  return body;
+}
+
+function shortSerial(serial) {
+  return serial.slice(0, 8) + "…";
+}
+
+async function loadAll() {
+  const [nvrs, cameras] = await Promise.all([
+    fetchJSON("/nvrs"),
+    fetchJSON("/cameras"),
+  ]);
+  renderNvrs(nvrs, cameras);
+  renderCameras(cameras, nvrs);
+  populateNvrDropdown(nvrs);
+}
+
+function renderNvrs(nvrs, cameras) {
+  const tbody = document.querySelector("#nvr-table tbody");
+  tbody.innerHTML = "";
+  document.getElementById("nvr-empty").style.display = nvrs.length ? "none" : "block";
+  for (const nvr of nvrs) {
+    const used = cameras.filter(c => c.nvr_uuid === nvr.serial_number).length;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escapeHtml(nvr.make)}</td>
+      <td>${escapeHtml(nvr.model)}</td>
+      <td>${used} / ${nvr.maximum_input_channels}</td>
+      <td class="mono">${shortSerial(nvr.serial_number)}</td>
+      <td><button class="danger" data-action="delete-nvr" data-id="${nvr.serial_number}">Delete</button></td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+function renderCameras(cameras, nvrs) {
+  const nvrByUuid = Object.fromEntries(nvrs.map(n => [n.serial_number, n]));
+  const tbody = document.querySelector("#camera-table tbody");
+  tbody.innerHTML = "";
+  document.getElementById("camera-empty").style.display = cameras.length ? "none" : "block";
+  for (const cam of cameras) {
+    const nvr = nvrByUuid[cam.nvr_uuid];
+    const nvrLabel = nvr ? `${nvr.make} ${nvr.model}` : shortSerial(cam.nvr_uuid);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escapeHtml(cam.make)}</td>
+      <td>${escapeHtml(cam.model)}</td>
+      <td>${escapeHtml(cam.kind)}</td>
+      <td>${escapeHtml(cam.location)}</td>
+      <td>${escapeHtml(nvrLabel)}</td>
+      <td><button class="danger" data-action="delete-camera" data-id="${cam.serial_number}">Delete</button></td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+function populateNvrDropdown(nvrs) {
+  const select = document.getElementById("camera-nvr-select");
+  const current = select.value;
+  select.innerHTML = "";
+  if (nvrs.length === 0) {
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "No NVRs available — add one first";
+    select.appendChild(opt);
+    select.disabled = true;
+    return;
+  }
+  select.disabled = false;
+  for (const nvr of nvrs) {
+    const opt = document.createElement("option");
+    opt.value = nvr.serial_number;
+    opt.textContent = `${nvr.make} ${nvr.model} (${shortSerial(nvr.serial_number)})`;
+    select.appendChild(opt);
+  }
+  if ([...select.options].some(o => o.value === current)) select.value = current;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+}
+
+function showError(el, message) {
+  el.textContent = message;
+  el.classList.add("show");
+}
+function clearError(el) {
+  el.textContent = "";
+  el.classList.remove("show");
+}
+
+function errorMessage(err, fallback) {
+  const detail = err.body && err.body.detail;
+  if (typeof detail === "string") return detail;
+  if (detail && typeof detail.message === "string") return detail.message;
+  if (Array.isArray(detail)) return detail.map(d => d.msg || JSON.stringify(d)).join("; ");
+  return fallback;
+}
+
+document.getElementById("nvr-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const errEl = document.getElementById("nvr-form-error");
+  clearError(errEl);
+  const form = e.target;
+  const payload = {
+    make: form.make.value,
+    model: form.model.value,
+    maximum_input_channels: Number(form.maximum_input_channels.value),
+  };
+  try {
+    await fetchJSON("/nvrs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    form.reset();
+    await loadAll();
+  } catch (err) {
+    showError(errEl, errorMessage(err, "Could not add NVR."));
+  }
+});
+
+document.getElementById("camera-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const errEl = document.getElementById("camera-form-error");
+  clearError(errEl);
+  const form = e.target;
+  const payload = {
+    make: form.make.value,
+    model: form.model.value,
+    kind: form.kind.value,
+    location: form.location.value,
+    nvr_uuid: form.nvr_uuid.value,
+  };
+  try {
+    await fetchJSON("/cameras", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    form.reset();
+    await loadAll();
+  } catch (err) {
+    showError(errEl, errorMessage(err, "Could not add camera."));
+  }
+});
+
+document.addEventListener("click", async (e) => {
+  const btn = e.target.closest("button[data-action]");
+  if (!btn) return;
+
+  if (btn.dataset.action === "delete-camera") {
+    if (!confirm("Delete this camera?")) return;
+    await fetchJSON(`/cameras/${btn.dataset.id}`, { method: "DELETE" });
+    await loadAll();
+  }
+
+  if (btn.dataset.action === "delete-nvr") {
+    try {
+      await fetchJSON(`/nvrs/${btn.dataset.id}`, { method: "DELETE" });
+      await loadAll();
+    } catch (err) {
+      if (err.status === 409 && err.body && err.body.detail && err.body.detail.confirmation_required) {
+        if (confirm(err.body.detail.message)) {
+          await fetchJSON(`/nvrs/${btn.dataset.id}?confirm=true`, { method: "DELETE" });
+          await loadAll();
+        }
+      } else {
+        alert(errorMessage(err, "Could not delete NVR."));
+      }
+    }
+  }
+});
+
+loadAll();
+</script>
+</body>
+</html>

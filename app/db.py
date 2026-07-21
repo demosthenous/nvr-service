@@ -28,7 +28,7 @@ CREATE INDEX IF NOT EXISTS idx_cameras_kind     ON cameras (kind);
 def get_connection(db_path: Path = DEFAULT_DB_PATH) -> sqlite3.Connection:
     db_path = Path(db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(db_path, check_same_thread=False)
     conn.row_factory = sqlite3.Row          # rows behave like dicts
     conn.execute("PRAGMA foreign_keys = ON") # SQLite has FKs OFF by default!
     return conn
