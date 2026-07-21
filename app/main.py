@@ -5,14 +5,17 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from app import db, repository as repo
 from app.models import NVR, Camera, CameraKind
+from app.seeding import seed_sample_data
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
-def create_app(db_path: Path = db.DEFAULT_DB_PATH) -> FastAPI:
+def create_app(db_path: Path = db.DEFAULT_DB_PATH, seed: bool = False) -> FastAPI:
     app = FastAPI(title="NVR & Camera Metadata Service")
 
     conn = db.get_connection(db_path)
     db.init_db(conn)
+    if seed:
+        seed_sample_data(conn)
     conn.close()
 
     def get_db():
@@ -79,4 +82,4 @@ def create_app(db_path: Path = db.DEFAULT_DB_PATH) -> FastAPI:
 
     return app
 
-app = create_app()
+app = create_app(seed=True)

@@ -103,11 +103,13 @@ uvicorn app.main:app --reload
 Interactive API docs (Swagger UI) are available at
 `http://127.0.0.1:8000/docs`.
 
-To seed the database with the sample data:
-
-```bash
-python seed.py
-```
+The sample data in `sample_nvr_camera_data.json` is loaded automatically
+every time the app starts — no manual seeding step is required. Loading is
+idempotent (records already in the database, matched by `serial_number`,
+are skipped rather than re-inserted or erroring), so restarting the app
+against an existing `data/nvr_service.db` is safe. `python seed.py` still
+exists as a standalone way to (re-)apply the same sample data to a
+database file outside of running the app.
 
 The service also serves a minimal web UI at `http://127.0.0.1:8000/` for
 adding and deleting NVRs and cameras. **This is an extra beyond the
@@ -123,8 +125,10 @@ pytest
 through the HTTP API (`TestClient`, in-memory temp SQLite files): creating
 NVRs and cameras, deleting an NVR (both the confirmation prompt and the
 confirmed cascade), listing cameras filtered by NVR/location/kind, plus
-validation errors, capacity limits, duplicate-serial conflicts, and a test
-that data written before a simulated restart is still there after.
+validation errors, capacity limits, duplicate-serial conflicts, a test
+that data written before a simulated restart is still there after, and
+that automatic sample-data seeding loads the valid records and is
+idempotent across repeated startups.
 
 ## API reference
 
@@ -201,13 +205,13 @@ curl "http://127.0.0.1:8000/cameras?location=Building%20A&kind=thermal"
 ## Notes and possible extensions
 
 - Two camera serial numbers in `sample_nvr_camera_data.json` are not valid
-  UUIDs — they start with `g` and `h`, which aren't hex characters. As a
-  result, `python seed.py` seeds all three NVRs and the first three
-  cameras, then crashes with a Pydantic `uuid_parsing` error on the fourth
-  camera record; the fifth is never attempted. This is a defect in the
-  sample data file itself, not in the service's validation, which is
-  correctly rejecting it. Fixing the two serials (or making `seed.py`
-  skip bad records and report them) would resolve it.
+  UUIDs — they start with `g` and `h`, which aren't hex characters. This is
+  a defect in the sample data file itself, not in the service's
+  validation, which is correctly rejecting them. The seeding step (run
+  automatically on startup, see Running) treats this as a per-record
+  concern: those two camera records are skipped with a logged warning,
+  while the three NVRs and three valid cameras load normally. The app
+  never fails to start because of it.
 - There's no authentication/authorization — out of scope for this
   exercise, but would be required before running this anywhere real.
 - No update (`PUT`/`PATCH`) endpoints — only the create/list/delete
