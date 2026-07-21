@@ -48,7 +48,7 @@
         "make": "Bosch",
         "model": "DINION IP starlight 8000i",
         "kind": "infrared",
-        "serial_number": "g4d8f1b3-5e9a-4c7d-8b2e-6a3c9e1f4b5d",
+        "serial_number": "04d8f1b3-5e9a-4c7d-8b2e-6a3c9e1f4b5d",
         "location": "Building B",
         "nvr_uuid": "b7d9f2a3-5e1c-4b8f-9d2e-3a6f8c1b4e7d"
       },
@@ -56,7 +56,7 @@
         "make": "Hanwha Vision",
         "model": "TNO-4041T",
         "kind": "thermal",
-        "serial_number": "h5e9a2c4-6f1b-4d8e-9c3a-7b4d8e2f5a6c",
+        "serial_number": "15e9a2c4-6f1b-4d8e-9c3a-7b4d8e2f5a6c",
         "location": "Building A",
         "nvr_uuid": "c1e4b6f9-8a2d-4c5e-7b9f-2d4a6c8e1f3b"
       }

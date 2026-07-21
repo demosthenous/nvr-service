@@ -204,14 +204,14 @@ curl "http://127.0.0.1:8000/cameras?location=Building%20A&kind=thermal"
 
 ## Notes and possible extensions
 
-- Two camera serial numbers in `sample_nvr_camera_data.json` are not valid
-  UUIDs — they start with `g` and `h`, which aren't hex characters. This is
-  a defect in the sample data file itself, not in the service's
-  validation, which is correctly rejecting them. The seeding step (run
-  automatically on startup, see Running) treats this as a per-record
-  concern: those two camera records are skipped with a logged warning,
-  while the three NVRs and three valid cameras load normally. The app
-  never fails to start because of it.
+- The seeding step (run automatically on startup, see Running) treats each
+  sample record independently: a record that fails validation is skipped
+  with a logged warning rather than aborting the load or crashing the app.
+  This was load-bearing during development, since two camera serial
+  numbers in `sample_nvr_camera_data.json` originally started with `g` and
+  `h` — not valid hex — and have since been corrected in the file itself;
+  the per-record handling is left in place as a safety net for any future
+  bad data rather than removed now that it's not currently exercised.
 - There's no authentication/authorization — out of scope for this
   exercise, but would be required before running this anywhere real.
 - No update (`PUT`/`PATCH`) endpoints — only the create/list/delete

@@ -90,17 +90,16 @@ def test_data_survives_restart(tmp_path):
     assert len(c2.get("/cameras").json()) == 0
     assert c2.post("/cameras", json=make_cam()).status_code == 201  # NVR still there
 
-def test_seed_on_startup_loads_valid_sample_records(tmp_path):
+def test_seed_on_startup_loads_sample_records(tmp_path):
     client = TestClient(create_app(db_path=tmp_path / "seeded.db", seed=True))
     nvrs = client.get("/nvrs").json()
     cameras = client.get("/cameras").json()
     assert len(nvrs) == 3
-    # two sample cameras have non-hex serial numbers and are skipped, not fatal
-    assert len(cameras) == 3
+    assert len(cameras) == 5
 
 def test_seeding_twice_is_idempotent(tmp_path):
     path = tmp_path / "reseeded.db"
     TestClient(create_app(db_path=path, seed=True))
     client = TestClient(create_app(db_path=path, seed=True))  # simulate a second startup
     assert len(client.get("/nvrs").json()) == 3
-    assert len(client.get("/cameras").json()) == 3
+    assert len(client.get("/cameras").json()) == 5
